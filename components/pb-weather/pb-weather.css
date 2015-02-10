@@ -1,0 +1,59 @@
+:host {
+  display: inline-block;
+  position: relative;
+  
+}
+#info {
+	font-family: sans-serif;
+	position: absolute;
+	text-align: center;
+}
+
+#info div {
+	margin: 5px 0;
+}
+
+#population {
+	font-size: 0.7em;
+}
+
+#temprature {
+	font-size: 1.1em;
+}
+
+#date {
+	font-size: 0.7em;
+}
+
+#legends {
+
+	list-style: none;
+	position: absolute;
+	bottom: 5px;
+	right: 5px;
+}
+
+#legends li {
+
+	margin: 0;
+	padding: 0;
+	height: 10px;
+}
+.legend  {
+	width: 10px;
+	height: 10px;
+	display: inline-block;
+}
+
+
+
+.legend-label {
+	font-size: 0.6em;
+}
+
+input.q {
+	color: #333;
+	border-bottom: 1px solid #333 !important;
+	width: 100px !important;
+	font-family: sans-serif !important;
+} 

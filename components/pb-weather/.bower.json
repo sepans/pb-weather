@@ -1,0 +1,29 @@
+{
+  "name": "pb-weather",
+  "keywords": [
+    "seed",
+    "polymer",
+    "web-components"
+  ],
+  "main": "pb-weather.html",
+  "dependencies": {
+    "polymer": "Polymer/polymer#^0.5.1",
+    "d3": "~3.5.3",
+    "core-ajax": "Polymer/core-ajax#~0.5.4",
+    "core-input": "Polymer/core-input#~0.5.4"
+  },
+  "devDependencies": {
+    "web-component-tester": "Polymer/web-component-tester#^2.0.0"
+  },
+  "homepage": "https://github.com/sepans/pb-weather",
+  "_release": "eeaa2fe298",
+  "_resolution": {
+    "type": "branch",
+    "branch": "master",
+    "commit": "eeaa2fe298362c9e855fb67d8137eb51b1de10ea"
+  },
+  "_source": "git://github.com/sepans/pb-weather.git",
+  "_target": "master",
+  "_originalSource": "sepans/pb-weather",
+  "_direct": true
+}

@@ -1,0 +1,199 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../core-ajax/core-ajax.html">
+<link rel="import" href="../core-input/core-input.html">
+
+<!--
+Weather circle element
+
+##### Example
+
+    <pb-weather></pb-weather>
+
+@element pb-weather
+@blurb Element providing solution to no problem in particular.
+@status alpha
+@homepage http://sepans.github.io/pb-weather
+-->
+<polymer-element name="pb-weather" attributes="qCity">
+  <template>
+    <link rel="stylesheet" href="pb-weather.css">
+
+    <input is="core-input" id="inputField" class="q" value="{{qCity}}"></input>
+
+    <core-ajax id="ajax" url="{{WEATHER_URL}}" handleAs="json" on-core-response="{{handleResponse}}" on-core-error="{{handleResponse}}"></core-ajax>
+
+    <div id="viz">
+      <svg id="svg">
+        <g id="paths">
+        </g>
+      </svg>
+    </div>
+    <div id="info">
+      <template if="{{cityName}}">
+          <div id="cityName">{{cityName}}</div>
+          <!--<div id="population">Population: {{population | addComma}}</div>-->
+          <div id="temprature">{{temprature}}</div>
+          <div id="date">{{date}}</div>
+      </template>
+    </div>   
+    <ul id="legends">
+      <template repeat="{{color, index in vizColors}}">
+        <li>
+          <div class="legend" style="background-color: {{color}}"></div>
+          <span class="legend-label">{{minTemp + tempStep*index | round}}</span>
+        </li>
+      </template>
+    </ul>
+    
+  </template>
+  <script src="../d3/d3.js"></script>
+  <script>
+    Polymer({
+
+      cityId: 5128581,
+      size: 400,
+      minTemp: -20,
+      maxTemp: 50,
+      qCity: 'New York',
+
+
+      //WEATHER_URL: 'http://api.openweathermap.org/data/2.5/history/city',
+      WEATHER_URL: 'http://api.openweathermap.org/data/2.5/forecast',
+      vizColors: [ 'rgb(227,26,28)','rgb(253,141,60)','rgb(254,204,92)','rgb(255,255,217)','rgb(237,248,177)','rgb(199,233,180)','rgb(127,205,187)','rgb(65,182,196)','rgb(29,145,192)','rgb(34,94,168)','rgb(37,52,148)','rgb(8,29,88)'],
+      //vizColors: ['rgb(255,255,217)','rgb(8,29,88)'],
+      //vizColors: ['#ffffd9','#edf8b1','#c7e9b4','#7fcdbb','#41b6c4','#1d91c0','#225ea8','#253494','#081d58'],
+      domReady: function () {
+        this.init();
+
+        this.$.ajax.params = {
+          type: 'hour',
+          units: 'metric',
+          //id: this.cityId
+          q: this.qCity
+        }
+        console.log('go', this.params, this.$.ajax);
+        this.$.ajax.go();
+        
+        this.outer = this.size * .47 * 2;
+        this.inner = this.size * .1 * 2; 
+
+        this.$.info.style.top = (this.size * 0.41) +'px';
+        this.$.info.style.left = (this.size * 0.41) + 'px';
+
+        this.tempStep = (this.maxTemp - this.minTemp)/this.vizColors.length;
+
+        this.$.inputField.addEventListener('change', this.cityChanged.bind(this) );
+        
+      },
+
+      init: function() {
+       
+      },
+      handleResponse: function(e) {
+          this.data = e.detail.response;
+          console.log(e.detail.response);
+          //this.fire('pb-response-ready');
+          //
+          this.cityName = e.detail.response.city.name;
+          this.population = e.detail.response.city.population;
+
+          this.drawViz(e.detail.response.list);
+
+
+      },
+      drawViz: function(data) {
+
+        var self = this;
+        
+        this.tempToRadiusScale = d3.scale.linear().domain([this.minTemp, this.maxTemp]).range([this.inner, this.outer]).clamp(true);
+
+        this.colorScale = d3.scale.quantize()
+                .domain([this.minTemp, this.maxTemp])
+                .range(this.vizColors.reverse());
+
+        console.log(this.colorScale.domain(),this.colorScale.range(), this.colorScale(-10), this.colorScale(-5), this.colorScale(10));
+
+        var dataSize = data.length;
+
+        var arc = d3.svg.arc()
+            .startAngle(function(d,i) { 
+              var angle = (i / dataSize) * 2* Math.PI;
+               return angle;
+            })
+            .endAngle(function(d, i) { return ((i+1) / dataSize) * 2 * Math.PI; })
+            .innerRadius(this.inner)
+            .outerRadius(this.zeroOuter.bind(this));
+
+
+        d3.select(self.$.svg).attr('width', this.size).attr('height', this.size);
+        d3.select(self.$.paths).attr('transform', 'translate('+this.size/2+','+this.size/2+')');
+
+        d3.select(self.$.paths).selectAll('.hours').remove();
+
+        
+        var hours = d3.select(self.$.paths).selectAll('.hours').data(data).enter().append('path');
+
+        hours.attr('class', 'hours')
+          .attr('d', arc)
+          .attr('id', function(d,i) { return 'dp'+i})
+          .style('fill', function(d) {
+            return self.colorScale(d.main.temp);
+          })
+          .style('stroke', '#333')
+          .on('mouseover', function(d,i) {
+            self.showData(d, i, this)
+          })
+          .on('mouseout', function(d,i) {
+            self.reset(d, i, this)
+          })
+        
+        arc.outerRadius(this.dataOuter.bind(this));
+
+        hours.transition().delay(function(d,i) {return 500+i*0}).duration(500).attr('d', arc);
+
+      },
+      showData: function(d,i , el) {
+        d3.select(el)
+         // .style('fill', '#bbb')
+          .style('stroke-width', 2);
+        this.temprature = d.main.temp + ' °C';
+        var d = new Date(d.dt);
+        this.date = d.getDate() + '-'+ (d.getMonth()+1) + '-'+d.getFullYear()+ ' '+d.getHours()+':'+d.getMinutes();
+        
+      },
+      reset: function(d,i, el) {
+        d3.select(el)
+        //.style('fill', '#aaa')
+        .style('stroke-width', 1);
+
+      },
+      zeroOuter: function(d) {
+        return this.inner;
+      },
+
+      dataOuter: function(d) {
+        var outer = this.tempToRadiusScale(d.main.temp);
+        return outer;
+      },
+      cityChanged: function() {
+        this.$.ajax.params = {
+          type: 'hour',
+          units: 'metric',
+          //id: this.cityId
+          q: this.qCity
+        }
+        console.log('go', this.params, this.$.ajax);
+        this.$.ajax.go();
+
+      },
+      addComma: function(x) {
+        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      },
+      round: function(x) {
+        return Math.round(x);
+      }
+
+      
+    });
+  </script>
+</polymer-element>
